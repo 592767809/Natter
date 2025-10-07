@@ -643,7 +643,7 @@ class ForwardNftables(object):
     def __init__(self, snat=False, sudo=False):
         self.handle = -1
         self.handle_snat = -1
-        self.min_ver = (0, 9, 0)
+        self.min_ver = (0, 9, 6)
         self.snat = snat
         self.sudo = sudo
         if sudo:
@@ -672,87 +672,106 @@ class ForwardNftables(object):
         if m:
             curr_ver = tuple(int(v) for v in m.groups())
             Logger.debug("fwd-nftables: Found nftables %s" % str(curr_ver))
-            if curr_ver < self.min_ver:
-                return False
-        # check nat table
-        try:
-            subprocess.check_output(
-                self.nftables_cmd + ["list table ip nat"]
-            )
-        except (OSError, subprocess.CalledProcessError) as e:
-            return False
-        return True
+            return curr_ver >= self.min_ver
+        return False
 
     def _nftables_init(self):
         try:
             subprocess.check_output(
-                self.nftables_cmd + ["list chain ip nat NATTER"],
+                self.nftables_cmd + ["list table ip natter"],
                 stderr=subprocess.STDOUT
             )
             return
         except subprocess.CalledProcessError:
             pass
-        Logger.debug("fwd-nftables: Creating Natter chain")
-        subprocess.check_output(
-            self.nftables_cmd + ["add chain ip nat NATTER"]
+        initial_rules = (
+            '''
+            table ip natter {
+                chain natter_dnat { }
+                chain natter_snat { }
+                chain prerouting {
+                    type nat hook prerouting priority dstnat-5; policy accept;
+                    jump natter_dnat;
+                }
+                chain output {
+                    type nat hook output priority dstnat-5; policy accept;
+                    jump natter_dnat;
+                }
+                chain postrouting {
+                    type nat hook postrouting priority srcnat-5; policy accept;
+                    jump natter_snat;
+                }
+                chain input {
+                    type nat hook input priority srcnat-5; policy accept;
+                    jump natter_snat;
+                }
+            }
+            '''
         )
+        Logger.debug("fwd-nftables: Creating Natter table")
         subprocess.check_output(
-            self.nftables_cmd + ["insert rule ip nat PREROUTING counter jump NATTER"]
-        )
-        subprocess.check_output(
-            self.nftables_cmd + ["insert rule ip nat OUTPUT counter jump NATTER"]
-        )
-        subprocess.check_output(
-            self.nftables_cmd + ["add chain ip nat NATTER_SNAT"]
-        )
-        subprocess.check_output(
-            self.nftables_cmd + ["insert rule ip nat PREROUTING counter jump NATTER_SNAT"]
-        )
-        subprocess.check_output(
-            self.nftables_cmd + ["insert rule ip nat OUTPUT counter jump NATTER_SNAT"]
+            self.nftables_cmd + [initial_rules]
         )
 
     def _nftables_clean(self):
         Logger.debug("fwd-nftables: Cleaning up Natter rules")
         if self.handle > 0:
             subprocess.check_output(
-                self.nftables_cmd + ["delete rule ip nat NATTER handle %d" % self.handle]
+                self.nftables_cmd + [
+                    "delete rule ip natter natter_dnat handle %d" % self.handle
+                ]
             )
+            self.handle = -1
         if self.handle_snat > 0:
             subprocess.check_output(
-                self.nftables_cmd + ["delete rule ip nat NATTER_SNAT handle %d" % self.handle_snat]
+                self.nftables_cmd + [
+                    "delete rule ip natter natter_snat handle %d"
+                        % self.handle_snat
+                ]
             )
+            self.handle_snat = -1
 
     def start_forward(self, ip, port, toip, toport, udp=False):
         if ip != toip:
             self._check_sys_forward_config()
         if (ip, port) == (toip, toport):
-            raise ValueError("Cannot forward to the same address %s" % addr_to_str((ip, port)))
+            raise ValueError("Cannot forward to the same address %s" %
+                             addr_to_str((ip, port)))
         proto = "udp" if udp else "tcp"
         Logger.debug("fwd-nftables: Adding rule %s forward to %s" % (
-            addr_to_uri((ip, port), udp=udp), addr_to_uri((toip, toport), udp=udp)
+            addr_to_uri((ip, port), udp=udp),
+            addr_to_uri((toip, toport), udp=udp)
         ))
-        output = subprocess.check_output(self.nftables_cmd + [
-            "--echo", "--handle",
-            "insert rule ip nat NATTER ip daddr %s %s dport %d counter dnat to %s:%d" % (
-                ip, proto, port, toip, toport
-            )
-        ]).decode()
-        m = re.search(r"# handle ([0-9]+)$", output, re.MULTILINE)
-        if not m:
-            raise ValueError("Unknown nftables handle")
-        self.handle = int(m.group(1))
-        if self.snat:
+        try:
             output = subprocess.check_output(self.nftables_cmd + [
                 "--echo", "--handle",
-                "insert rule ip nat NATTER_SNAT ip daddr %s %s dport %d counter snat to %s" % (
-                    toip, proto, toport, ip
+                "insert rule ip natter natter_dnat ip daddr %s %s dport %d "
+                "dnat to %s:%d" % (
+                    ip, proto, port, toip, toport
                 )
             ]).decode()
-            m = re.search(r"# handle ([0-9]+)$", output, re.MULTILINE)
+            m = re.search(r"# handle ([0-9]+)", output)
             if not m:
                 raise ValueError("Unknown nftables handle")
-            self.handle_snat = int(m.group(1))
+            self.handle = int(m.group(1))
+            if self.snat:
+                output = subprocess.check_output(self.nftables_cmd + [
+                    "--echo", "--handle",
+                    "insert rule ip natter natter_snat ip daddr %s "
+                    "%s dport %d snat to %s" % (
+                        toip, proto, toport, ip
+                    )
+                ]).decode()
+                m = re.search(r"# handle ([0-9]+)", output)
+                if not m:
+                    raise ValueError("Unknown nftables handle")
+                self.handle_snat = int(m.group(1))
+        except Exception:
+            try:
+                self._nftables_clean()
+            except Exception:
+                pass
+            raise
 
     def stop_forward(self):
         self._nftables_clean()
@@ -760,11 +779,11 @@ class ForwardNftables(object):
     def _check_sys_forward_config(self):
         fpath = "/proc/sys/net/ipv4/ip_forward"
         if os.path.exists(fpath):
-            fin = open(fpath, "r")
-            buff = fin.read()
-            fin.close()
+            with open(fpath, "r") as fin:
+                buff = fin.read()
             if buff.strip() != "1":
-                raise OSError("IP forwarding is disabled by system. Please do `sysctl net.ipv4.ip_forward=1`")
+                raise OSError("IP forwarding is not allowed. "
+                              "Please do `sysctl net.ipv4.ip_forward=1`")
         else:
             Logger.warning("fwd-nftables: '%s' not found" % str(fpath))
 
