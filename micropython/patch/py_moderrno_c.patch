@@ -1,0 +1,19 @@
+diff --git a/py/moderrno.c b/py/moderrno.c
+index 58a141c1..995086db 100644
+--- a/py/moderrno.c
++++ b/py/moderrno.c
+@@ -102,6 +102,14 @@ const mp_obj_module_t mp_module_errno = {
+ MP_REGISTER_EXTENSIBLE_MODULE(MP_QSTR_errno, mp_module_errno);
+ 
+ qstr mp_errno_to_str(mp_obj_t errno_val) {
++    // Query strerror() first to get a human-readable message
++    mp_int_t errno_int;
++    if (mp_obj_get_int_maybe(errno_val, &errno_int)) {
++        char *msg = strerror(errno_int);
++        if (msg) {
++            return qstr_from_str(msg);
++        }
++    }
+     #if MICROPY_PY_ERRNO_ERRORCODE
+     // We have the errorcode dict so can do a lookup using the hash map
+     mp_map_elem_t *elem = mp_map_lookup((mp_map_t *)&errorcode_dict.map, errno_val, MP_MAP_LOOKUP);

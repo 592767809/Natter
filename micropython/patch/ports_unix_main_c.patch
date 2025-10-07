@@ -1,0 +1,82 @@
+diff --git a/ports/unix/main.c b/ports/unix/main.c
+index 530e20a..c926e54 100644
+--- a/ports/unix/main.c
++++ b/ports/unix/main.c
+@@ -37,6 +37,7 @@
+ #include <sys/types.h>
+ #include <errno.h>
+ #include <signal.h>
++#include <libgen.h>
+ 
+ #include "py/compile.h"
+ #include "py/runtime.h"
+@@ -509,7 +510,25 @@ MP_NOINLINE int main_(int argc, char **argv) {
+     signal(SIGPIPE, SIG_IGN);
+     #endif
+ 
+-    pre_process_options(argc, argv);
++    int disable_natter = 0;
++
++    size_t argv0_len = strlen(argv[0]);
++    char *basebuf = malloc(argv0_len + 1);
++    if (!basebuf) {
++        perror(argv[0]);
++        return 1;
++    }
++    memcpy(basebuf, argv[0], argv0_len + 1);
++    char *progname = basename(basebuf);
++    if (strncmp(progname, "micropython", strlen("micropython")) == 0 ||
++            strncmp(progname, "python", strlen("python")) == 0) {
++        disable_natter = 1;
++    }
++    free(basebuf);
++
++    if (disable_natter) {
++        pre_process_options(argc, argv);
++    }
+ 
+     #if MICROPY_ENABLE_GC
+     #if !MICROPY_GC_SPLIT_HEAP
+@@ -643,7 +662,41 @@ MP_NOINLINE int main_(int argc, char **argv) {
+     const int NOTHING_EXECUTED = -2;
+     int ret = NOTHING_EXECUTED;
+     bool inspect = false;
+-    for (int a = 1; a < argc; a++) {
++
++    if (!disable_natter) {
++        // Run Natter from frozen module 'natter'.
++        mp_sys_path = mp_obj_new_list(0, NULL);
++        #ifdef MICROPY_MODULE_FROZEN
++        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(MP_QSTR__dot_frozen));
++        #endif
++
++        mp_obj_t import_args[4];
++        import_args[0] = MP_OBJ_NEW_QSTR(MP_QSTR_natter);
++        import_args[1] = mp_const_none;
++        import_args[2] = mp_const_none;
++        import_args[3] = mp_const_false;
++        set_sys_argv(argv, argc, 0);
++
++        #if MICROPY_GC_ALLOC_THRESHOLD
++        MP_STATE_MEM(gc_alloc_threshold) = 8 * 1024 * 1024 /
++                                           MICROPY_BYTES_PER_GC_BLOCK;
++        #endif
++
++        mp_hal_set_interrupt_char(CHAR_CTRL_C);
++        nlr_buf_t nlr;
++        if (nlr_push(&nlr) == 0) {
++            mp_builtin___import__(MP_ARRAY_SIZE(import_args), import_args);
++            mp_hal_set_interrupt_char(-1);
++            mp_handle_pending(true);
++            nlr_pop();
++            ret = 0;
++        } else {
++            // uncaught exception
++            mp_hal_set_interrupt_char(-1);
++            mp_handle_pending(false);
++            ret = handle_uncaught_exception(nlr.ret_val) & 0xff;
++        }
++    } else for (volatile int a = 1; a < argc; a++) {
+         if (argv[a][0] == '-') {
+             if (strcmp(argv[a], "-i") == 0) {
+                 inspect = true;
