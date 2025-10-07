@@ -96,8 +96,7 @@ class StunTest(object):
         "global.turn.twilio.com",
         "turn.cloudflare.com",
         "stun.voip.blackberry.com",
-        "stun.radiojar.com",
-        "stun.isp.net.au"
+        "stun.radiojar.com"
     ]
     # Servers in this list must be compatible with rfc3489, with "change IP" and "change port" functions available
     stun_server_udp = [
