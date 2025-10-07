@@ -517,6 +517,8 @@ class ForwardIptables(object):
             Logger.debug("fwd-iptables: Found iptables %s" % str(self.curr_ver))
             if self.curr_ver < self.min_ver:
                 return False
+        else:
+            return False
         # check nat table
         try:
             subprocess.check_output(
