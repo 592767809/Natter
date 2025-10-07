@@ -44,7 +44,7 @@ class Logger(object):
     ERROR = 3
     rep = {DEBUG: "D", INFO: "I", WARN: "W", ERROR: "E"}
     level = INFO
-    if "256color" in os.environ.get("TERM", ""):
+    if os.isatty(sys.stderr.fileno()) and "256color" in os.getenv("TERM", ""):
         GREY = "\033[90;20m"
         YELLOW_BOLD = "\033[33;1m"
         RED_BOLD = "\033[31;1m"
@@ -57,31 +57,37 @@ class Logger(object):
         Logger.level = level
 
     @staticmethod
+    def get_timestr():
+        return "%04d-%02d-%02d %02d:%02d:%02d" % time.localtime()[:6]
+
+    @staticmethod
     def debug(text=""):
         if Logger.level <= Logger.DEBUG:
             sys.stderr.write((Logger.GREY + "%s [%s] %s\n" + Logger.RESET) % (
-                time.strftime("%Y-%m-%d %H:%M:%S"), Logger.rep[Logger.DEBUG], text
+                Logger.get_timestr(), Logger.rep[Logger.DEBUG], text
             ))
 
     @staticmethod
     def info(text=""):
         if Logger.level <= Logger.INFO:
             sys.stderr.write(("%s [%s] %s\n") % (
-                time.strftime("%Y-%m-%d %H:%M:%S"), Logger.rep[Logger.INFO], text
+                Logger.get_timestr(), Logger.rep[Logger.INFO], text
             ))
 
     @staticmethod
     def warning(text=""):
         if Logger.level <= Logger.WARN:
-            sys.stderr.write((Logger.YELLOW_BOLD + "%s [%s] %s\n" + Logger.RESET) % (
-                time.strftime("%Y-%m-%d %H:%M:%S"), Logger.rep[Logger.WARN], text
+            sys.stderr.write((Logger.YELLOW_BOLD + "%s [%s] %s\n" +
+                              Logger.RESET) % (
+                Logger.get_timestr(), Logger.rep[Logger.WARN], text
             ))
 
     @staticmethod
     def error(text=""):
         if Logger.level <= Logger.ERROR:
-            sys.stderr.write((Logger.RED_BOLD + "%s [%s] %s\n" + Logger.RESET) % (
-                time.strftime("%Y-%m-%d %H:%M:%S"), Logger.rep[Logger.ERROR], text
+            sys.stderr.write((Logger.RED_BOLD + "%s [%s] %s\n" +
+                              Logger.RESET) % (
+                Logger.get_timestr(), Logger.rep[Logger.ERROR], text
             ))
 
 
@@ -1566,10 +1572,10 @@ def natter_main(show_title = True):
     keep_retry = args.r
     exit_when_changed = args.q
 
-    sys.tracebacklimit = 0
     if verbose:
-        sys.tracebacklimit = None
         Logger.set_level(Logger.DEBUG)
+    else:
+        sys.tracebacklimit = 0
 
     validate_positive(interval)
     if stun_list:
