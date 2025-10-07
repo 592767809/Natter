@@ -1125,7 +1125,7 @@ class UPnPService(object):
             "Content-Length: %d\r\n"
             "Connection: close\r\n"
             "\r\n"
-            "%s\r\n" % (ctl_path, ctl_hostname, ctl_port, self.service_type, content_len, content)
+            "%s" % (ctl_path, ctl_hostname, ctl_port, self.service_type, content_len, content)
         ).encode()
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
