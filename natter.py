@@ -1836,7 +1836,7 @@ def natter_main(show_title = True):
 
 
 def main():
-    signal.signal(signal.SIGTERM, lambda s,f:exit(143))
+    signal.signal(signal.SIGTERM, lambda s,f: sys.exit(143))
     fix_codecs()
     show_title = True
     while True:
