@@ -1225,12 +1225,12 @@ class UPnPDevice(object):
         return s[1]
 
     def _get_srv_dict(self, url):
+        services_d = {}
         try:
             xmlcontent = self._http_get(url).decode("utf-8", "ignore")
         except (OSError, socket.error, ValueError) as ex:
-            Logger.error("upnp: failed to load service from %s: %s" % (url, ex))
-            return
-        services_d = {}
+            Logger.warning("upnp: failed to load service from %s: %s" % (url, ex))
+            return services_d
         srv_str_l = re.findall(r"<service\s*>([\s\S]+?)</service\s*>", xmlcontent)
         for srv_str in srv_str_l:
             srv = UPnPService(self, bind_ip=self._bind_ip, interface=self._bind_interface)
