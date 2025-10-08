@@ -80,6 +80,7 @@ class stat_result(tuple):
     def __setattr__(self, name, value):
         if hasattr(self, '__frozen__') and self.__frozen__:
             raise AttributeError("Assignment is not allowed")
+        object.__setattr__(self, name, value)
 
     def __repr__(self):
         return "stat_result(%s)" % repr(super())
@@ -101,6 +102,7 @@ class uname_result(tuple):
     def __setattr__(self, name, value):
         if hasattr(self, '__frozen__') and self.__frozen__:
             raise AttributeError("Assignment is not allowed")
+        object.__setattr__(self, name, value)
 
     def __repr__(self):
         return "uname_result(%s)" % repr(super())
