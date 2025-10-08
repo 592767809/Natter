@@ -1874,6 +1874,13 @@ def natter_main(show_title = True):
         try:
             keep_alive.keep_alive()
         except (OSError, socket.error) as ex:
+            if hasattr(errno, "EADDRNOTAVAIL") and \
+                    ex.errno == errno.EADDRNOTAVAIL:
+                if exit_when_changed:
+                    Logger.info("Natter is exiting because local IP address "
+                                "has changed")
+                    raise NatterExitException("Local IP address has changed")
+                raise NatterRetryException("Local IP address has changed")
             if udp_mode:
                 Logger.debug("keep-alive: UDP response not received: %s" % ex)
             else:
