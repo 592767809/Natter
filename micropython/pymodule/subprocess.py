@@ -148,6 +148,16 @@ def check_output(args, *, stderr=None):
             _kill_child(pid, _posix.SIGKILL)
 
 
+def call(*args, **kwargs):
+    with Popen(args[0]) as p:
+        try:
+            return p.wait()
+        except:
+            p.kill()
+            p.wait()
+            raise
+
+
 class Popen(object):
     def __init__(self, args):
         self.args = args
