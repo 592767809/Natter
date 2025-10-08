@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  Build:
+    name: Build
+    runs-on: ubuntu-latest
+    env:
+      cross_dir: /opt/x-tools
+    strategy:
+      matrix:
+        include:
+          - name: arm64
+            triplet: aarch64-unknown-linux-musl
+            sha256: 28a1d26f14f8ddc3aed31f20705fe696777400eb5952d90470a7e6e2dd1175bb
+          - name: arm32
+            triplet: arm-unknown-linux-musleabi
+            sha256: 95ce1aaf65f87ccdf714591c1bc7700f894ede1c6d3521bcedeff3acde9732ba
+          - name: arm32hf
+            triplet: arm-unknown-linux-musleabihf
+            sha256: 2073af4caa8dd1898e16c87e02f8fb9c50c475b10a2d5306416e0c7891e201c6
+          - name: arm32v7
+            triplet: armv7-unknown-linux-musleabi
+            sha256: 2ff70f31b1e3b3708b1a7c48d846a5781917d85b49b90a3b75344e7bed2656e5
+          - name: arm32v7hf
+            triplet: armv7-unknown-linux-musleabihf
+            sha256: 741e421ac82d71797e3fce607b52ad31208c1de0f4b340b6fde3fb15adf53c61
+          - name: i586
+            triplet: i586-unknown-linux-musl
+            sha256: 6ed6b195c44ff91e4636680aaf860eb80b8a2a02b782e24b622c6c4c99726736
+          - name: i686
+            triplet: i686-unknown-linux-musl
+            sha256: 2595d247618bec5908c3e24516780e3343a0297b3b7e6dc70711ba75a62fc112
+          - name: loong64
+            triplet: loongarch64-unknown-linux-musl
+            sha256: 4d9cba898688732e0f01dc2b6281ac7d75f98d4e30e5ff8e0125dd9c139c2172
+          - name: m68k
+            triplet: m68k-unknown-linux-musl
+            sha256: 1a1965de969fac64fee85e0f2dabb59063a60cf6584f0cd521987c0d18480df5
+          - name: microblazeel
+            triplet: microblazeel-xilinx-linux-musl
+            sha256: 2ceb60b2e97cdd0c7cbd05d367d08deb24b54d34ef6030c70e3e2a1c57645476
+          - name: microblaze
+            triplet: microblaze-xilinx-linux-musl
+            sha256: 28a98391df1d4f095118226a2948c960c87f67f5e5e95b102277064813730e60
+          - name: mips64el
+            triplet: mips64el-unknown-linux-musl
+            sha256: e96ceb131679bc2bbbda8deb66373ced8d41f740cecb2b29ae2dfac5539967f8
+          - name: mips64
+            triplet: mips64-unknown-linux-musl
+            sha256: 2094bcee79a7538df552612be3b2280edb3ec731ffa29ae45c0df59a69c4dde4
+          - name: mips32el
+            triplet: mipsel-unknown-linux-musl
+            sha256: 55a8af3c96fb38a32e44733472d5cc80ad1c32fcf81b1c2bc134dc7beecd5f00
+          - name: mips32elsf
+            triplet: mipsel-unknown-linux-muslsf
+            sha256: 37a36a23b2f81eb3d2a83e0243c3734f1806b9531ed2cec7aa3a577645dea6d4
+          - name: mips32
+            triplet: mips-unknown-linux-musl
+            sha256: ecbf4616b8c71df1013f4148fe7969331f7e4a89bee2841c7c5c79e3cc094504
+          - name: mips32sf
+            triplet: mips-unknown-linux-muslsf
+            sha256: 3b37de77311f90b1d34091b6087b370d71e03c15b5e02ae0727a981e8df19b62
+          - name: or1k
+            triplet: or1k-unknown-linux-musl
+            sha256: 016bd3ba6ffa4b359808a6c76ca1932d974ba73ef070b6190c7291470ca2d441
+          - name: powerpc64
+            triplet: powerpc64-unknown-linux-musl
+            sha256: f0bfa604b5dd9072f2668bbd0df3c02f640d1249ada99bf8d5da5238654b993e
+          - name: powerpc64le
+            triplet: powerpc64le-unknown-linux-musl
+            sha256: d7dc51ee9379aa06c99f0ed3a20598bf94eb27b859ed1ea67ac4915d49d83fb3
+          - name: powerpc
+            triplet: powerpc-unknown-linux-musl
+            sha256: 3dceab6807ae8cbcc0b42e162f2da96172f1e524cf7ef706fe47f1238d4f6443
+          - name: powerpcle
+            triplet: powerpcle-unknown-linux-musl
+            sha256: 64a26ecd0c32a49193118aa6863e4c10a76649b7e265184552454caaaf03ae1a
+          - name: riscv32
+            triplet: riscv32-unknown-linux-musl
+            sha256: 178d6c1f540301a01053e5bbe37a8b6d16dd4cf6691eed672a215401c05adc71
+          - name: riscv64
+            triplet: riscv64-unknown-linux-musl
+            sha256: d95b6894aa55c53800ec37ba6932e540bc2e90ae0c02fb99284aa59f7fc85fb5
+          - name: s390x
+            triplet: s390x-ibm-linux-musl
+            sha256: f7a6788f6b371847c61a8444dd4cbdd90ce98f2d0e0a32b9e118b8acd59a584a
+          - name: sh4
+            triplet: sh4-multilib-linux-musl
+            sha256: 902cd30fd8ebd974d740cad19997c1958ac78bfebd7cb149f76525db311ca0df
+          - name: x86_64
+            triplet: x86_64-unknown-linux-musl
+            sha256: 6534870abd7dc327fd2e14cc53972d0552b21f47db5769505534f788537e3544
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Set up toolchain for ${{ matrix.name }}
+        run: |
+          CROSS_TOOLCHAIN_URL="https://github.com/cross-tools/musl-cross/releases/download/20250929/${{ matrix.triplet }}.tar.xz"
+
+          sudo mkdir -m 777 -p "${{ env.cross_dir }}"
+          cd "${{ env.cross_dir }}"
+          curl -Lfo "${{ matrix.triplet }}.tar.xz" "$CROSS_TOOLCHAIN_URL"
+          echo "${{ matrix.sha256 }} *${{ matrix.triplet }}.tar.xz" | sha256sum -c
+          tar xJf "${{ matrix.triplet }}.tar.xz"
+
+      - name: Build for ${{ matrix.name }}
+        run: |
+          CROSS_COMPILE="${{ env.cross_dir }}/${{ matrix.triplet }}/bin/${{ matrix.triplet }}-"
+
+          cd micropython
+          make -j$(nproc) compress STATIC=1 CROSS_COMPILE="$CROSS_COMPILE"
+          mkdir -p 'build/dist/natter'
+          cp -a build/compressed build/natter build/dist/natter
+
+      - name: Upload ${{ matrix.name }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: natter-linux-${{ matrix.name }}
+          path: micropython/build/dist/natter
+          if-no-files-found: error
