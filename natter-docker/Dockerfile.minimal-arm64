@@ -1,5 +1,5 @@
 ARG ARCH=aarch64_generic
-FROM --platform=linux/${ARCH} openwrt/rootfs:aarch64_generic-23.05.2 AS builder
+FROM --platform=linux/${ARCH} openwrt/rootfs:aarch64_generic-24.10.2 AS builder
 
 COPY natter.py /opt/natter.py
 

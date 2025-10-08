@@ -1,5 +1,5 @@
 ARG ARCH=aarch64_generic
-FROM --platform=linux/${ARCH} openwrt/rootfs:aarch64_generic-23.05.2 AS builder
+FROM --platform=linux/${ARCH} openwrt/rootfs:aarch64_generic-24.10.2 AS builder
 
 COPY natter.py /opt/natter.py
 
@@ -7,7 +7,7 @@ RUN mkdir -p /var/lock/ /var/run/ \
     && opkg update \
     && opkg install ca-certificates curl gzip iptables-legacy jq nftables python3 socat wget \
     && opkg remove 'kmod-*' --force-depends \
-    && curl -L 'https://github.com/ginuerzh/gost/releases/download/v2.11.5/gost-linux-armv8-2.11.5.gz' | gunzip > /usr/bin/gost \
+    && curl -fL 'https://github.com/go-gost/gost/releases/download/v3.2.4/gost_3.2.4_linux_arm64.tar.gz' | tar -xzO gost > /usr/bin/gost \
     && chmod a+x /usr/bin/gost \
     && chmod a+x /opt/natter.py
 

@@ -1,5 +1,5 @@
 ARG ARCH=amd64
-FROM --platform=linux/${ARCH} openwrt/rootfs:x86-64-23.05.2 AS builder
+FROM --platform=linux/${ARCH} openwrt/rootfs:x86-64-24.10.2 AS builder
 
 COPY natter.py /opt/natter.py
 
