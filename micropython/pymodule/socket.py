@@ -185,6 +185,19 @@ def inet_ntoa(packed_ip):
     return _usocket.inet_ntop(_posix.AF_INET, packed_ip)
 
 
+def gethostbyname_ex(hostname):
+    res = _getaddrinfo(
+        hostname, "0", _posix.AF_INET, _posix.SOCK_DGRAM, 0,
+        _posix.AI_NUMERICSERV
+    )
+    ipstrs = [
+        _getnameinfo(
+            rec[4], _posix.NI_NUMERICHOST | _posix.NI_NUMERICSERV
+        )[0] for rec in res
+    ]
+    return (hostname, [], ipstrs)
+
+
 def _getaddrinfo(*args, **kwargs):
     try:
         return _posix.getaddrinfo(*args, **kwargs)

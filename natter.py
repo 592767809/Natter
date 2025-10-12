@@ -1439,6 +1439,18 @@ def fix_codecs(codec_list = ["utf-8", "idna"]):
         codecs.register(search_codec)
 
 
+def run_natter_check():
+    try:
+        modcheck = __import__('natter-check', None, None, ['natter-check'])
+    except ImportError:
+        raise RuntimeError("natter-check.py is missing") from None
+
+    if hasattr(modcheck, 'natter-check'):
+        modcheck = modcheck.__dict__['natter-check']
+
+    modcheck.main()
+
+
 def check_docker_network():
     if not sys.platform.startswith("linux"):
         return
@@ -1573,6 +1585,9 @@ def natter_main(show_title = True):
         "--help", action="help", help="show this help message and exit"
     )
     group.add_argument(
+        "--check", action="store_true", help="run natter-check and exit"
+    )
+    group.add_argument(
         "-v", action="store_true", help="verbose mode, printing debug messages"
     )
     group.add_argument(
@@ -1648,6 +1663,10 @@ def natter_main(show_title = True):
         Logger.set_level(Logger.DEBUG)
     else:
         sys.tracebacklimit = 0
+
+    if args.check:
+        run_natter_check()
+        sys.exit(0)
 
     validate_positive(interval)
     if stun_list:

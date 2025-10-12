@@ -8,6 +8,7 @@ def __manifest_add_modules():
 
 
 module('natter.py', base_path='../..')
+module('natter-check.py', base_path='../../natter-check')
 __manifest_add_modules()
 
 del __manifest_add_modules

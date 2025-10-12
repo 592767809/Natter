@@ -1,0 +1,12 @@
+diff --git a/tools/mpy-tool.py b/tools/mpy-tool.py
+index 69d3a6c..2240ff3 100755
+--- a/tools/mpy-tool.py
++++ b/tools/mpy-tool.py
+@@ -1386,6 +1386,7 @@ def read_mpy(filename):
+ 
+         # Compute the compiled-module escaped name.
+         cm_escaped_name = qstr_table[0].str.replace("/", "_")[:-3]
++        cm_escaped_name = cm_escaped_name.replace('-', '_hyphen_')
+ 
+         # Read the outer raw code, which will in turn read all its children.
+         raw_code_file_offset = reader.tell()
