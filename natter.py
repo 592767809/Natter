@@ -235,6 +235,8 @@ class StunClient(object):
     def get_mapping(self):
         first = self.stun_server_list[0]
         while True:
+            if self.source_port:
+                set_reuse_port(self.source_port)
             try:
                 return self._get_mapping()
             except StunClient.ServerUnavailable as ex:
@@ -1543,6 +1545,19 @@ def validate_filepath(s, err=True):
 
 def ip_normalize(ipaddr):
     return socket.inet_ntoa(socket.inet_aton(ipaddr))
+
+
+def set_reuse_port(port):
+    try:
+        from natterutils import reuse_port
+    except ImportError:
+        Logger.debug("reuse-port: Not implemented on this platform. Ignored.")
+        return
+    try:
+        reuse_port(port)
+    except OSError:
+        Logger.debug("reuse-port: Failed to reuse port. Ignored.")
+        return
 
 
 def natter_main(show_title = True):
