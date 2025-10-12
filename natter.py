@@ -686,25 +686,29 @@ class ForwardNftables(object):
             return
         except subprocess.CalledProcessError:
             pass
+
+        # Priority values:
+        #   dstnat (-100) - 5: -105
+        #   srcnat ( 100) - 5:   95
         initial_rules = (
             '''
             table ip natter {
                 chain natter_dnat { }
                 chain natter_snat { }
                 chain prerouting {
-                    type nat hook prerouting priority dstnat-5; policy accept;
+                    type nat hook prerouting priority -105; policy accept;
                     jump natter_dnat;
                 }
                 chain output {
-                    type nat hook output priority dstnat-5; policy accept;
+                    type nat hook output priority -105; policy accept;
                     jump natter_dnat;
                 }
                 chain postrouting {
-                    type nat hook postrouting priority srcnat-5; policy accept;
+                    type nat hook postrouting priority 95; policy accept;
                     jump natter_snat;
                 }
                 chain input {
-                    type nat hook input priority srcnat-5; policy accept;
+                    type nat hook input priority 95; policy accept;
                     jump natter_snat;
                 }
             }
