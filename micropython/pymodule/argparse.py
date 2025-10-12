@@ -982,7 +982,7 @@ class _AppendAction(Action):
             metavar=metavar)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        items = _ensure_value(namespace, self.dest, []).__copy__()
+        items = _ensure_value(namespace, self.dest, [])[:]
         items.append(values)
         setattr(namespace, self.dest, items)
 
@@ -1008,7 +1008,7 @@ class _AppendConstAction(Action):
             metavar=metavar)
 
     def __call__(self, parser, namespace, values, option_string=None):
-        items = _ensure_value(namespace, self.dest, []).__copy__()
+        items = _ensure_value(namespace, self.dest, [])[:]
         items.append(self.const)
         setattr(namespace, self.dest, items)
 
